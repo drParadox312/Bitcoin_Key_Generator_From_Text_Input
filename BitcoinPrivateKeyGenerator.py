@@ -246,7 +246,7 @@ readme_text = """!!!!!!!!!!!!!!!!!!!  ATTENTION  !!!!!!!!!!!!!!!!!!!!
 To generate private key write a sentence in "SENTENCE.txt" file.
 --------------------------------
 Use English language characters.
-These are;
+Recomended characters are;
 A-Z letters
 a-z letters
 0,1,2,3,4,5,6,7,8,9 numbers
@@ -254,12 +254,10 @@ a-z letters
 , (comma)
 ? (question mark)
 ' (apostrophe)
-! (exclamation mark)
-() (left and right paranthesis)
-: (colon)
-; (semicolon)
-- (hyphen minus)
 --------------------------------
+At least use 20 characters to ensure strong encryption.
+Otherwise if it will be too short, it will be easily predictable.
+And your bitcoin would be stolen.
 
 After private key generation completed, write your sentence any paper.
 
