@@ -310,7 +310,6 @@ if(is_sentence_wrote):
         sentence = sentence.lower()
 
         hex_value = sha256_string_input(sentence)
-        b58 = hex_to_base58(hex_value)
         b58cc = hex_to_base58check(hex_value)
 
         output = """
