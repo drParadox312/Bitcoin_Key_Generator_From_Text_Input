@@ -450,7 +450,7 @@ def check_input_text_is_valid(text_input:str):
             return (False, 2)
     for u in character_use_count:
         use_count = character_use_count[u]
-        if(use_count / characters_length > float(0.33)): # input text will be rejceted if any character is used mor than %33 percentage of sentences
+        if(use_count / characters_length > float(0.33)): # input text will be rejceted if any character is used more than %33 percentage of sentences
             return (False, 3)
     return (True, 0)
 
