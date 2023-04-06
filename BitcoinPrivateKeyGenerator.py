@@ -1,5 +1,5 @@
 # Python version: 3.11.0 (64-bit, x64)
-# Updated: 30/03/2023
+# Updated: 07/04/2023
 # Licence: MIT License
 # Contact: satoshi.amd@gmail.com
 
@@ -11,6 +11,41 @@
 # https://en.bitcoin.it/wiki/Base58Check_encoding
 # https://medium.com/@farukterzioglu/bitcoinde-private-key-a5d79eeda0f1
 # https://learn.saylor.org/mod/page/view.php?id=36323
+# for ecdsa:
+# https://learnmeabitcoin.com/technical/ecdsa#key-generation
+# for base58 encoding:
+# read: https://learnmeabitcoin.com/technical/base58
+
+
+# for RIPEMD-160 :
+# https://en.bitcoin.it/wiki/List_of_address_prefixes
+# https://en.bitcoin.it/wiki/Wallet_import_format
+# https://learnmeabitcoin.com/technical/base58#modulus
+# https://learnmeabitcoin.com/technical/wif
+# https://learnmeabitcoin.com/technical/public-key
+# https://learnmeabitcoin.com/technical/public-key-hash
+# https://learnmeabitcoin.com/technical/address
+# https://github.com/toddr/Crypt-RIPEMD160/tree/master/rmd160/hash
+# https://github.com/toddr/Crypt-RIPEMD160/blob/master/rmd160/hash/rmd160.h
+# https://github.com/toddr/Crypt-RIPEMD160/blob/master/rmd160/hash/rmd160.c
+# https://homes.esat.kuleuven.be/~bosselae/ripemd/rmd160.txt
+# https://homes.esat.kuleuven.be/~bosselae/ripemd160.html#Outline
+
+
+
+# Online Bech32 / SegWit address generation:
+# *1 https://learnmeabitcoin.com/technical/hash-function#hash160
+# *2 https://slowli.github.io/bech32-buffer/
+# Firstly, copy the "public key (compressed)" to *1 website to generate output of Hash160 (ripemd160(sha256())).
+# Secondly, copy the "output of Hash160" to *2 website to generate Bech32 / SegWit address. (params: mainnet, scriptver 0)
+
+
+"""
+TODO: RIPEMD-160 hashing algorithm is not implemented yet.
+"""
+
+
+
 
 
 def sha256_binary_input(input_binary: str):
@@ -197,12 +232,125 @@ def sha256_string_input(input_string:str):
 
 
 
+
+# for ecdsa:
+# https://learnmeabitcoin.com/technical/ecdsa#key-generation
+
+class POINT:
+    x = int(0)
+    y = int(0)
+    def __init__(self, x=0, y=0):
+        self.x = x
+        self.y = y
+    def __str__(self):
+        return "\n" + f"x: {self.x}" + "\n" + f"y: {self.y}"
+    
+
+class SIGNATURE:
+    r = int(0)
+    s = int(0)
+    def __init__(self, r=0, s=0):
+        self.r = r
+        self.s = s
+    def __str__(self):
+        return "\n" + f"r: {self.r}" + "\n" + f"s: {self.s}"
+    
+# secp256k1
+# y² = x³ + ax + b   # a = 0   # b = 7
+
+# prime field
+p = 2 ** 256 - 2 ** 32 - 2 ** 9 - 2 ** 8 - 2 ** 7 - 2 ** 6 - 2 ** 4 - 1
+
+# number of points on the curve we can hit ("order")
+n = 115792089237316195423570985008687907852837564279074904382605163141518161494337
+
+# generator point (the starting point on the curve used for all calculations)
+G = POINT(55066263022277343669578718895168534326250603453777594175500187360389116729240,
+          32670510020758816978083085130507043184471273380659243275938904335757337482424)
+
+
+def inverse(a, m):
+    # store original modulus
+    m_orig = m          
+
+    # make sure a is positive
+    if (a < 0):         
+        a = a % m 
+
+    prevy, y = 0, 1
+
+    while (a > 1):
+        q = m // a
+        y, prevy = prevy - q * y, y
+        a, m = m % a, a
+
+    return y % m_orig
+
+
+def double(point):
+    # slope = (3x₁² + a) / 2y₁
+    # using inverse to help with division
+    slope = ((3 * point.x ** 2 + 0) * inverse((2 * point.y), p)) % p 
+
+    # x = slope² - 2x₁
+    x = (slope ** 2 - (2 * point.x)) % p
+
+    # y = slope * (x₁ - x) - y₁
+    y = (slope * (point.x - x) - point.y) % p
+
+    return POINT(x,y)
+
+
+
+def add(point1, point2):
+    # double if both points are the same
+    if (point1 == point2):
+        return double(point1)
+    
+    # slope = (y₁ - y₂) / (x₁ - x₂)
+    slope = ((point1.y - point2.y) * inverse(point1.x - point2.x, p)) % p
+
+    # x = slope² - x₁ - x₂
+    x = (slope ** 2 - point1.x - point2.x) % p
+
+    # y = slope * (x₁ - x) - y₁
+    y = ((slope * (point1.x - x)) - point1.y) % p
+
+    return POINT(x,y)
+
+
+
+def multiply(k, point):
+    # create a copy the initial starting point (for use in addition later on)
+    current = point
+
+    # convert integer to binary representation
+    binary = bin(k)[3:]
+
+    # double and add algorithm for fast multiplication
+    #index = 0
+    for b in binary:
+        current = double(current)
+        if(b == "1"):
+            current = add(current, point)
+        #print("i: {}\t{}{}".format(index, b, current))
+        #index += 1
+        
+    return current
+
+
+
+
+
+
+
+
 # for base58 encoding
 # read: https://learnmeabitcoin.com/technical/base58
 
 base58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
-def hex_to_base58(hex_input: str):
+def hex0x_to_base58(hex_input: str):
     dec = int(hex_input, 16)
     rt = ""
     while(dec > 0):
@@ -218,20 +366,41 @@ def hex_to_base58(hex_input: str):
 
 
 
-def hex_to_base58check(hex_input: str):
-    
+def hex0x_to_base58check(hex_input: str):
     hex_input = "0x80" + hex_input[2:] + "01" 
     # "0x80" prefix is stand for Private key (WIF, compressed pubkey)
     # see: https://en.bitcoin.it/wiki/List_of_address_prefixes 
-
-    
 
     # first 4 byte of double hash is used for checksum suffix 
     s1 = sha256_binary_input(bin(int(hex_input, 16))[2:].zfill(256))
     s2 = sha256_binary_input(bin(int(s1, 16))[2:].zfill(256))
     hex_input += s2[2:10]
 
-    return hex_to_base58(hex_input)
+    return hex0x_to_base58(hex_input)
+
+
+
+def generate_base58cc_private_key_from_text_input(t:str):
+    h = sha256_string_input(t)
+    bc = hex0x_to_base58check(h)
+    d = int(h, 16)
+    return(bc, h, d)
+
+
+
+def generate_public_keys_from_private_key(pik:int):
+    puk =  multiply(pik, G)
+    # convert x and y values of this point to hexadecimal
+    x = hex(puk.x)[2:].rjust(64, "0")
+    y = hex(puk.y)[2:].rjust(64, "0")
+    # uncompressed public key format (not used much these days)
+    puk_u = "04" + x + y
+    puk_c = x
+    if(puk.y % 2 == 0):
+        puk_c = "02" + puk_c
+    else:
+        puk_c = "03" + puk_c
+    return (puk_u, puk_c)
 
 
 
@@ -239,44 +408,152 @@ def hex_to_base58check(hex_input: str):
 
 
 
+# abrevated_auxiliary_verbs = {
+#     "i'm" : "iam",
+#     "he's" : "heis"
+#     ...
+# }
+# 
+# TODO
+# convert abrevated auxiliary verbs to long forms to eliminate typo
+
+def modify_text(text_input:str):
+    #text = "".join(text.split())
+    text_input = text_input.replace("\n", "")
+    text_input = text_input.replace("\t", "")
+    text_input = text_input.lower()
+    text_input = text_input.replace(" ", "")
+    text_input = text_input.replace("'", "")
+    text_input = text_input.replace(",", "")
+    text_input = text_input.replace(".", "")
+    return text_input
+
+   
 
 
-readme_text = """!!!!!!!!!!!!!!!!!!!  ATTENTION  !!!!!!!!!!!!!!!!!!!!
 
-To generate private key write a sentence in "SENTENCE.txt" file.
---------------------------------
-Use English language characters.
-Recomended characters are;
-A-Z letters
-a-z letters
-0,1,2,3,4,5,6,7,8,9 numbers
-' (apostrophe)
-. (dot)
-, (comma)
---------------------------------
-At least use 20 characters to ensure strong encryption.
-Otherwise if it will be too short, it will be easily predictable.
-And your bitcoin would be stolen.
 
-After private key generation completed, write your sentence any paper.
+character_use_count = {"0":0,"1":0,"2":0,"3":0,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"a":0,"b":0,"c":0,"d":0,"e":0,"f":0,"g":0,"h":0,"i":0,"j":0,"k":0,"l":0,"m":0,"n":0,"o":0,"p":0,"q":0,"r":0,"s":0,"t":0,"u":0,"v":0,"w":0,"x":0,"y":0,"z":0,"A":0,"B":0,"C":0,"D":0,"E":0,"F":0,"G":0,"H":0,"I":0,"J":0,"K":0,"L":0,"M":0,"N":0,"O":0,"P":0,"Q":0,"R":0,"S":0,"T":0,"U":0,"V":0,"W":0,"X":0,"Y":0,"Z":0,"'":0,",":0,".":0}
+valid_characters = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',."
+def chech_input_text_is_valid(text_input:str):
+    characters_length = len(text_input)
+    if(len(text_input) < 20):
+        return (False, 1)
+    for t in text_input:
+        is_valid_char = False
+        for a in valid_characters:
+            if(t == a):
+                is_valid_char = True
+                character_use_count[a] += 1
+                break
+        if(is_valid_char == False):
+            return (False, 2)
+    for u in character_use_count:
+        use_count = character_use_count[u]
+        if(use_count / characters_length > float(0.33)): # input text will be rejceted if any character is used mor than %33 percentage of sentences
+            return (False, 3)
+    return (True, 0)
 
-When you wrote your private key (and sentence) to a paper;
-Delete "SENTENCE.txt" file and "BITCOIN PRIVATE KEY.txt" file. 
-Don't store these files in your computer.
-Don't store at e-mail.
-Don't store at phone as photograph.
-Don't store at cloud services like Google Drive, OneDrive etc.
-Don't share your sentence with anyone.
-Don't share your private key with anyone.
+ 
 
-You can generate public key (bitcoin address) via third party application like Electrum.
-https://electrum.org/#home
 
-You can share your public key (bitcoin address), NOT private key (sentence).
-Anyone can send you bitcoin to your public key address, not private key (sentence).
-So you should share your public key to sender, not private key (sentence).
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"""
+
+
+readme_text = """
+Write one or more sentences in "TEXT_INPUT.txt" file to generate private key .
+
+
+    At least use 20 characters except spaces.
+--> It is recommended to write minimum 40 characters except spaces to ensure strong encryption.
+    If you use too short sentences, it will be easy to predict your private key and your bitcoin could be stolen.
+
+
+Use below characters. Other characters are not valid.
+-----------------------------------------------------
+  A-Z English letters
+  a-z English letters
+  0,1,2,3,4,5,6,7,8,9 numbers
+  . (dot)
+  , (comma)
+  ' (apostrophe) [not advised]
+-----------------------------------------------------
+
+" '(apostrophe) " may cause typo. It is not adviced to use.
+If you forget you used the abrevated auxiliary verbs, you can't generate correct private key from your wrong sentences.
+
+
+After private key generation completed, write your sentences any paper.
+
+When you wrote your private key (and sentences) to a paper;
+Delete "TEXT_INPUT.txt" file.
+Delete "BITCOIN KEYS.txt" file.
+Empty your recycling bin.
+Don't store "TEXT_INPUT.txt" and "BITCOIN KEYS.txt" files in your computer.
+Don't store this files and private key at e-mail.
+Don't store this files and private key at phone as photograph.
+Don't store this files and private key at cloud services like Google Drive, OneDrive etc.
+Don't share this files and private key with anyone.
+
+You can share your public key (bitcoin address), not private key (sentences).
+Anyone can send you bitcoin to your public key address, not to private key (sentences).
+
+"""
+
+
+
+def format_bitcoin_keys_text(private_key:str, public_key_compressed:str):
+    return """
+    
+    BITCOIN KEYS:
+
+
+    
+    Private key  -----------------------------------------> {}
+
+    This is your private key. It is secret to you. 
+    Write this key to paper and store it securely.
+    Do not share this private key with anyone.
+    Do not write website or online tools. 
+    If anyone learn this private key, he/she can stole your bitcoin.
+    Just use it in third party bitcoin wallet application like Electrum.
+    https://electrum.org/#home
+    https://bitcoin.org/en/choose-your-wallet
+    *If you want use SegWit / Bech32 address format add "p2wpkh:" prefix to private key.
+
+    
+
+
+    
+
+    Public key (compressed) ------------------------------> {}
+
+    This is yours public key. You can share this key. 
+    If you want other people to send you bitcoin, you should share this public key.
+
+    
+
+
+
+
+    SegWit / Bech32 address:
+
+    This address is new type of bitcoin address. 
+    It starts with "bc1" prefix.
+    Its use is optional but it is recommended to use.
+    Most people use segwit/bech32 address today.
+    It is generated from public key.
+    You can generate it from online tools. Explained below:
+    *1 https://learnmeabitcoin.com/technical/hash-function#hash160
+    *2 https://slowli.github.io/bech32-buffer/
+    First, copy the "public key (compressed)" to *1 website to generate output of Hash160 (ripemd160(sha256())).
+    After, copy the "output of Hash160" to *2 website to generate Bech32 / SegWit address. (params: mainnet, scriptver 0)
+
+    """.format(private_key, public_key_compressed)
+
+
+
+
 
 
 file = open("README.txt", "wt")
@@ -284,52 +561,65 @@ file.write(readme_text)
 file.close()
 
 
-sentence = ""
+text = ""
 is_sentence_wrote = False
 
 try:
-    file = open("SENTENCE.txt", "rt")
+    file = open("TEXT_INPUT.txt", "rt")
     is_sentence_wrote = True
     file.close()
 except:
-    file = open("SENTENCE.txt", "xt")
+    file = open("TEXT_INPUT.txt", "xt")
     file.close()
    
 
+
+
+
+
+
+
 if(is_sentence_wrote):
     
-    file = open("SENTENCE.txt", "rt")
-    sentence = file.read()
+    file = open("TEXT_INPUT.txt", "rt")
+    text = file.read()
 
-    if(sentence != ""):
+    if(text != ""):
+            
+        text = modify_text(text)
+
+        (is_text_valid, rejection_code) = chech_input_text_is_valid(text)
+
+        if(is_text_valid):
         
-        sentence = "".join(sentence.split())
-        sentence = sentence.lower()
+            (private_key, hex_value, decimal_value) = generate_base58cc_private_key_from_text_input(text)
 
-        hex_value = sha256_string_input(sentence)
-        b58cc = hex_to_base58check(hex_value)
+            (public_key_uncompressed, public_key_compressed) = generate_public_keys_from_private_key(decimal_value)
 
-        output = """
-        
-        BITCOIN PRIVATE KEY:
+            sha256_of_public_key_compressed = sha256_string_input(public_key_compressed)
 
-          p2wpkh:{}
+            bitcoin_keys_text = format_bitcoin_keys_text(private_key, public_key_compressed)
 
-          
+            file = open("BITCOIN KEYS.txt", "wt")
+            file.write(bitcoin_keys_text)
+            file.close()
 
-        Do not share this private key with anyone. 
-        Just use it in third party bitcoin wallet application like Electrum.
-        https://electrum.org/#home
+        else:
+            file = open("BITCOIN KEYS.txt", "wt")
+            ft = ""
+            if(rejection_code == 1):
+                ft = "Please write enough characters. \n\nWrite at least 20 characters except spaces. \n\nSee \"README.txt\" file for more info."
+            elif(rejection_code == 2):
+                ft = "Please write valid characters. \n\nSee \"README.txt\" file for more info."
+            elif(rejection_code == 3):
+                ft = "Please write heterogeneous sentences. \n\nDo not use any letters too frequently. \n\nAny character frequency must be less than %33 percent. \n\nOtherwise your private can be easily predictable and your Bitcoins could be stolen. \n\nSee \"README.txt\" file for more info."
+            else:
+                ft = "Unidentified error occured at processing text inside \"TEXT_INPUT.txt\" file. \n\nPlease try another sentences. \n\nSee \"README.txt\" file for more info."
+            file.write(ft)
+            file.close()
 
-        
-
-        MODIFIED SENTENCE: 
-        
-        {}
-        """.format(b58cc, sentence)
-
-        file = open("BITCOIN PRIVATE KEY.txt", "wt")
-        file.write(output)
+    else:
+        file = open("BITCOIN KEYS.txt", "wt")
+        file.write("Write any sentences inside \"TEXT_INPUT.txt\" file to generate Bitcoin keys.")
         file.close()
-
 
