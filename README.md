@@ -5,19 +5,19 @@
 Write one or more sentences in "TEXT_INPUT.txt" file to generate private key .
 
 
-    At least use 20 characters except spaces.
---> It is recommended to write minimum 40 characters except spaces to ensure strong encryption.
-    If you use too short sentences, it will be easy to predict your private key and your bitcoin could be stolen.
+At least use 20 characters except spaces.
+It is recommended to write minimum 40 characters except spaces to ensure strong encryption.
+If you use too short sentences, it will be easy to predict your private key and your bitcoin could be stolen.
 
 
 Use below characters. Other characters are not valid.
 -----------------------------------------------------
-  A-Z English letters
-  a-z English letters
-  0,1,2,3,4,5,6,7,8,9 numbers
-  . (dot)
-  , (comma)
-  ' (apostrophe) [not advised]
+A-Z English letters
+a-z English letters
+0,1,2,3,4,5,6,7,8,9 numbers
+. (dot)
+, (comma)
+' (apostrophe) [not advised]
 -----------------------------------------------------
 
 " '(apostrophe) " may cause typo. It is not adviced to use.
