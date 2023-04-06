@@ -36,8 +36,8 @@
 # Online Bech32 / SegWit address generation:
 # *1 https://learnmeabitcoin.com/technical/hash-function#hash160
 # *2 https://slowli.github.io/bech32-buffer/
-# Firstly, copy the "public key (compressed)" to *1 website to generate output of Hash160 (ripemd160(sha256())).
-# Secondly, copy the "output of Hash160" to *2 website to generate Bech32 / SegWit address. (params: mainnet, scriptver 0)
+# First, copy the "public key (compressed)" to *1 website to generate output of Hash160 (ripemd160(sha256())).
+# After, copy the "output of Hash160" to *2 website to generate Bech32 / SegWit address. (params: mainnet, scriptver 0)
 
 
 """
