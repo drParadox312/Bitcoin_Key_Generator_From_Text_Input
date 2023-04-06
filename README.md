@@ -10,13 +10,13 @@ It is recommended to write minimum 40 characters except spaces to ensure strong 
 If you use too short sentences, it will be easy to predict your private key and your bitcoin could be stolen.
 
 
-Use below characters. Other characters are not valid.
-A-Z English letters
-a-z English letters
-0,1,2,3,4,5,6,7,8,9 numbers
-. (dot)
-, (comma)
-' (apostrophe) [not advised]
+Use below characters. Other characters are not valid. \n
+A-Z English letters \n
+a-z English letters \n
+0,1,2,3,4,5,6,7,8,9 numbers \n
+. (dot) \n
+, (comma) \n
+' (apostrophe) [not advised] \n
 
 
 " '(apostrophe) " may cause typo. It is not adviced to use.
