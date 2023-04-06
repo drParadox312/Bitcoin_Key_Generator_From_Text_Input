@@ -11,14 +11,13 @@ If you use too short sentences, it will be easy to predict your private key and 
 
 
 Use below characters. Other characters are not valid.
------------------------------------------------------
 A-Z English letters
 a-z English letters
 0,1,2,3,4,5,6,7,8,9 numbers
 . (dot)
 , (comma)
 ' (apostrophe) [not advised]
------------------------------------------------------
+
 
 " '(apostrophe) " may cause typo. It is not adviced to use.
 If you forget you used the abrevated auxiliary verbs, you can't generate correct private key from your wrong sentences.
