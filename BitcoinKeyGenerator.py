@@ -1004,8 +1004,9 @@ Don't store this files and private key at phone as photograph.
 Don't store this files and private key at cloud services like Google Drive, OneDrive etc.
 Don't share this files and private key with anyone.
 
-You can share your public key (bitcoin address), not private key (sentences).
-Anyone can send you bitcoin to your public key address, not to private key (sentences).
+You can share your SegWit/Bech32 address and public key, not private key (sentences).
+Anyone can send you bitcoin to your SegWit/Bech32 address or public key, not to private key (sentences).
+It is recommended to use SegWit/Bech32 address instead of public key.
 
 """
 
