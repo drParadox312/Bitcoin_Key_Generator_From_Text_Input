@@ -1,7 +1,10 @@
 # Python version: 3.11.0 (64-bit, x64)
-# Updated: 07/04/2023
+# Updated: 08/04/2023
 # Licence: MIT License
 # Contact: satoshi.amd@gmail.com
+
+import sys
+import struct
 
 # resources:
 # https://en.wikipedia.org/wiki/SHA-2
@@ -18,6 +21,7 @@
 
 
 # for RIPEMD-160 :
+# https://github.com/karpathy/cryptos/blob/main/cryptos/ripemd160.py
 # https://en.bitcoin.it/wiki/List_of_address_prefixes
 # https://en.bitcoin.it/wiki/Wallet_import_format
 # https://learnmeabitcoin.com/technical/base58#modulus
@@ -34,6 +38,7 @@
 
 
 # Online Bech32 / SegWit address generation:
+# https://blockchain-academy.hs-mittweida.de/bech32-tool/
 # *1 https://learnmeabitcoin.com/technical/hash-function#hash160
 # *2 https://slowli.github.io/bech32-buffer/
 # First, copy the "public key (compressed)" to *1 website to generate output of Hash160 (ripemd160(sha256())).
@@ -43,6 +48,11 @@
 """
 TODO: RIPEMD-160 hashing algorithm is not implemented yet.
 """
+
+
+
+
+
 
 
 
@@ -233,6 +243,467 @@ def sha256_string_input(input_string:str):
 
 
 
+
+
+
+
+
+# resources:
+# https://github.com/karpathy/cryptos/blob/main/cryptos/ripemd160.py
+
+## ripemd.py - pure Python implementation of the RIPEMD-160 algorithm.
+## Bjorn Edstrom <be@bjrn.se> 16 december 2007.
+##
+## Copyrights
+## ==========
+##
+## This code is a derived from an implementation by Markus Friedl which is
+## subject to the following license. This Python implementation is not
+## subject to any other license.
+##
+##/*
+## * Copyright (c) 2001 Markus Friedl.  All rights reserved.
+## *
+## * Redistribution and use in source and binary forms, with or without
+## * modification, are permitted provided that the following conditions
+## * are met:
+## * 1. Redistributions of source code must retain the above copyright
+## *    notice, this list of conditions and the following disclaimer.
+## * 2. Redistributions in binary form must reproduce the above copyright
+## *    notice, this list of conditions and the following disclaimer in the
+## *    documentation and/or other materials provided with the distribution.
+## *
+## * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+## * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+## * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+## * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+## * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+## * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES LOSS OF USE,
+## * DATA, OR PROFITS OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+## * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+## * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+## * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+## */
+##/*
+## * Preneel, Bosselaers, Dobbertin, "The Cryptographic Hash Function RIPEMD-160",
+## * RSA Laboratories, CryptoBytes, Volume 3, Number 2, Autumn 1997,
+## * ftp://ftp.rsasecurity.com/pub/cryptobytes/crypto3n2.pdf
+## */
+
+# import sys
+# import struct
+
+# -----------------------------------------------------------------------------
+# public interface
+
+def ripemd160(b: bytes) -> bytes:
+    """ simple wrapper for a simpler API to this hash function, just bytes to bytes """
+    ctx = RMDContext()
+    RMD160Update(ctx, b, len(b))
+    digest = RMD160Final(ctx)
+    return digest
+
+# -----------------------------------------------------------------------------
+
+class RMDContext:
+    def __init__(self):
+        self.state = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0] # uint32
+        self.count = 0 # uint64
+        self.buffer = [0]*64 # uchar
+
+def RMD160Update(ctx, inp, inplen):
+    have = int((ctx.count // 8) % 64)
+    inplen = int(inplen)
+    need = 64 - have
+    ctx.count += 8 * inplen
+    off = 0
+    if inplen >= need:
+        if have:
+            for i in range(need):
+                ctx.buffer[have+i] = inp[i]
+            RMD160Transform(ctx.state, ctx.buffer)
+            off = need
+            have = 0
+        while off + 64 <= inplen:
+            RMD160Transform(ctx.state, inp[off:]) #<---
+            off += 64
+    if off < inplen:
+        for i in range(inplen - off):
+            ctx.buffer[have+i] = inp[off+i]
+
+def RMD160Final(ctx):
+    size = struct.pack("<Q", ctx.count)
+    padlen = 64 - ((ctx.count // 8) % 64)
+    if padlen < 1 + 8:
+        padlen += 64
+    RMD160Update(ctx, PADDING, padlen-8)
+    RMD160Update(ctx, size, 8)
+    return struct.pack("<5L", *ctx.state)
+
+# -----------------------------------------------------------------------------
+
+K0 = 0x00000000
+K1 = 0x5A827999
+K2 = 0x6ED9EBA1
+K3 = 0x8F1BBCDC
+K4 = 0xA953FD4E
+KK0 = 0x50A28BE6
+KK1 = 0x5C4DD124
+KK2 = 0x6D703EF3
+KK3 = 0x7A6D76E9
+KK4 = 0x00000000
+
+PADDING = [0x80] + [0]*63
+
+def ROL(n, x):
+    return ((x << n) & 0xffffffff) | (x >> (32 - n))
+
+def F0(x, y, z):
+    return x ^ y ^ z
+
+def F1(x, y, z):
+    return (x & y) | (((~x) % 0x100000000) & z)
+
+def F2(x, y, z):
+    return (x | ((~y) % 0x100000000)) ^ z
+
+def F3(x, y, z):
+    return (x & z) | (((~z) % 0x100000000) & y)
+
+def F4(x, y, z):
+    return x ^ (y | ((~z) % 0x100000000))
+
+def R(a, b, c, d, e, Fj, Kj, sj, rj, X):
+    a = ROL(sj, (a + Fj(b, c, d) + X[rj] + Kj) % 0x100000000) + e
+    c = ROL(10, c)
+    return a % 0x100000000, c
+
+def RMD160Transform(state, block): #uint32 state[5], uchar block[64]
+
+    x = [0]*16
+    assert sys.byteorder == 'little', "Only little endian is supported atm for RIPEMD160"
+    x = struct.unpack('<16L', bytes(block[0:64]))
+
+    a = state[0]
+    b = state[1]
+    c = state[2]
+    d = state[3]
+    e = state[4]
+
+    #/* Round 1 */
+    a, c = R(a, b, c, d, e, F0, K0, 11,  0, x)
+    e, b = R(e, a, b, c, d, F0, K0, 14,  1, x)
+    d, a = R(d, e, a, b, c, F0, K0, 15,  2, x)
+    c, e = R(c, d, e, a, b, F0, K0, 12,  3, x)
+    b, d = R(b, c, d, e, a, F0, K0,  5,  4, x)
+    a, c = R(a, b, c, d, e, F0, K0,  8,  5, x)
+    e, b = R(e, a, b, c, d, F0, K0,  7,  6, x)
+    d, a = R(d, e, a, b, c, F0, K0,  9,  7, x)
+    c, e = R(c, d, e, a, b, F0, K0, 11,  8, x)
+    b, d = R(b, c, d, e, a, F0, K0, 13,  9, x)
+    a, c = R(a, b, c, d, e, F0, K0, 14, 10, x)
+    e, b = R(e, a, b, c, d, F0, K0, 15, 11, x)
+    d, a = R(d, e, a, b, c, F0, K0,  6, 12, x)
+    c, e = R(c, d, e, a, b, F0, K0,  7, 13, x)
+    b, d = R(b, c, d, e, a, F0, K0,  9, 14, x)
+    a, c = R(a, b, c, d, e, F0, K0,  8, 15, x) #/* #15 */
+    #/* Round 2 */
+    e, b = R(e, a, b, c, d, F1, K1,  7,  7, x)
+    d, a = R(d, e, a, b, c, F1, K1,  6,  4, x)
+    c, e = R(c, d, e, a, b, F1, K1,  8, 13, x)
+    b, d = R(b, c, d, e, a, F1, K1, 13,  1, x)
+    a, c = R(a, b, c, d, e, F1, K1, 11, 10, x)
+    e, b = R(e, a, b, c, d, F1, K1,  9,  6, x)
+    d, a = R(d, e, a, b, c, F1, K1,  7, 15, x)
+    c, e = R(c, d, e, a, b, F1, K1, 15,  3, x)
+    b, d = R(b, c, d, e, a, F1, K1,  7, 12, x)
+    a, c = R(a, b, c, d, e, F1, K1, 12,  0, x)
+    e, b = R(e, a, b, c, d, F1, K1, 15,  9, x)
+    d, a = R(d, e, a, b, c, F1, K1,  9,  5, x)
+    c, e = R(c, d, e, a, b, F1, K1, 11,  2, x)
+    b, d = R(b, c, d, e, a, F1, K1,  7, 14, x)
+    a, c = R(a, b, c, d, e, F1, K1, 13, 11, x)
+    e, b = R(e, a, b, c, d, F1, K1, 12,  8, x) #/* #31 */
+    #/* Round 3 */
+    d, a = R(d, e, a, b, c, F2, K2, 11,  3, x)
+    c, e = R(c, d, e, a, b, F2, K2, 13, 10, x)
+    b, d = R(b, c, d, e, a, F2, K2,  6, 14, x)
+    a, c = R(a, b, c, d, e, F2, K2,  7,  4, x)
+    e, b = R(e, a, b, c, d, F2, K2, 14,  9, x)
+    d, a = R(d, e, a, b, c, F2, K2,  9, 15, x)
+    c, e = R(c, d, e, a, b, F2, K2, 13,  8, x)
+    b, d = R(b, c, d, e, a, F2, K2, 15,  1, x)
+    a, c = R(a, b, c, d, e, F2, K2, 14,  2, x)
+    e, b = R(e, a, b, c, d, F2, K2,  8,  7, x)
+    d, a = R(d, e, a, b, c, F2, K2, 13,  0, x)
+    c, e = R(c, d, e, a, b, F2, K2,  6,  6, x)
+    b, d = R(b, c, d, e, a, F2, K2,  5, 13, x)
+    a, c = R(a, b, c, d, e, F2, K2, 12, 11, x)
+    e, b = R(e, a, b, c, d, F2, K2,  7,  5, x)
+    d, a = R(d, e, a, b, c, F2, K2,  5, 12, x) #/* #47 */
+    #/* Round 4 */
+    c, e = R(c, d, e, a, b, F3, K3, 11,  1, x)
+    b, d = R(b, c, d, e, a, F3, K3, 12,  9, x)
+    a, c = R(a, b, c, d, e, F3, K3, 14, 11, x)
+    e, b = R(e, a, b, c, d, F3, K3, 15, 10, x)
+    d, a = R(d, e, a, b, c, F3, K3, 14,  0, x)
+    c, e = R(c, d, e, a, b, F3, K3, 15,  8, x)
+    b, d = R(b, c, d, e, a, F3, K3,  9, 12, x)
+    a, c = R(a, b, c, d, e, F3, K3,  8,  4, x)
+    e, b = R(e, a, b, c, d, F3, K3,  9, 13, x)
+    d, a = R(d, e, a, b, c, F3, K3, 14,  3, x)
+    c, e = R(c, d, e, a, b, F3, K3,  5,  7, x)
+    b, d = R(b, c, d, e, a, F3, K3,  6, 15, x)
+    a, c = R(a, b, c, d, e, F3, K3,  8, 14, x)
+    e, b = R(e, a, b, c, d, F3, K3,  6,  5, x)
+    d, a = R(d, e, a, b, c, F3, K3,  5,  6, x)
+    c, e = R(c, d, e, a, b, F3, K3, 12,  2, x) #/* #63 */
+    #/* Round 5 */
+    b, d = R(b, c, d, e, a, F4, K4,  9,  4, x)
+    a, c = R(a, b, c, d, e, F4, K4, 15,  0, x)
+    e, b = R(e, a, b, c, d, F4, K4,  5,  5, x)
+    d, a = R(d, e, a, b, c, F4, K4, 11,  9, x)
+    c, e = R(c, d, e, a, b, F4, K4,  6,  7, x)
+    b, d = R(b, c, d, e, a, F4, K4,  8, 12, x)
+    a, c = R(a, b, c, d, e, F4, K4, 13,  2, x)
+    e, b = R(e, a, b, c, d, F4, K4, 12, 10, x)
+    d, a = R(d, e, a, b, c, F4, K4,  5, 14, x)
+    c, e = R(c, d, e, a, b, F4, K4, 12,  1, x)
+    b, d = R(b, c, d, e, a, F4, K4, 13,  3, x)
+    a, c = R(a, b, c, d, e, F4, K4, 14,  8, x)
+    e, b = R(e, a, b, c, d, F4, K4, 11, 11, x)
+    d, a = R(d, e, a, b, c, F4, K4,  8,  6, x)
+    c, e = R(c, d, e, a, b, F4, K4,  5, 15, x)
+    b, d = R(b, c, d, e, a, F4, K4,  6, 13, x) #/* #79 */
+
+    aa = a
+    bb = b
+    cc = c
+    dd = d
+    ee = e
+
+    a = state[0]
+    b = state[1]
+    c = state[2]
+    d = state[3]
+    e = state[4]
+
+    #/* Parallel round 1 */
+    a, c = R(a, b, c, d, e, F4, KK0,  8,  5, x)
+    e, b = R(e, a, b, c, d, F4, KK0,  9, 14, x)
+    d, a = R(d, e, a, b, c, F4, KK0,  9,  7, x)
+    c, e = R(c, d, e, a, b, F4, KK0, 11,  0, x)
+    b, d = R(b, c, d, e, a, F4, KK0, 13,  9, x)
+    a, c = R(a, b, c, d, e, F4, KK0, 15,  2, x)
+    e, b = R(e, a, b, c, d, F4, KK0, 15, 11, x)
+    d, a = R(d, e, a, b, c, F4, KK0,  5,  4, x)
+    c, e = R(c, d, e, a, b, F4, KK0,  7, 13, x)
+    b, d = R(b, c, d, e, a, F4, KK0,  7,  6, x)
+    a, c = R(a, b, c, d, e, F4, KK0,  8, 15, x)
+    e, b = R(e, a, b, c, d, F4, KK0, 11,  8, x)
+    d, a = R(d, e, a, b, c, F4, KK0, 14,  1, x)
+    c, e = R(c, d, e, a, b, F4, KK0, 14, 10, x)
+    b, d = R(b, c, d, e, a, F4, KK0, 12,  3, x)
+    a, c = R(a, b, c, d, e, F4, KK0,  6, 12, x) #/* #15 */
+    #/* Parallel round 2 */
+    e, b = R(e, a, b, c, d, F3, KK1,  9,  6, x)
+    d, a = R(d, e, a, b, c, F3, KK1, 13, 11, x)
+    c, e = R(c, d, e, a, b, F3, KK1, 15,  3, x)
+    b, d = R(b, c, d, e, a, F3, KK1,  7,  7, x)
+    a, c = R(a, b, c, d, e, F3, KK1, 12,  0, x)
+    e, b = R(e, a, b, c, d, F3, KK1,  8, 13, x)
+    d, a = R(d, e, a, b, c, F3, KK1,  9,  5, x)
+    c, e = R(c, d, e, a, b, F3, KK1, 11, 10, x)
+    b, d = R(b, c, d, e, a, F3, KK1,  7, 14, x)
+    a, c = R(a, b, c, d, e, F3, KK1,  7, 15, x)
+    e, b = R(e, a, b, c, d, F3, KK1, 12,  8, x)
+    d, a = R(d, e, a, b, c, F3, KK1,  7, 12, x)
+    c, e = R(c, d, e, a, b, F3, KK1,  6,  4, x)
+    b, d = R(b, c, d, e, a, F3, KK1, 15,  9, x)
+    a, c = R(a, b, c, d, e, F3, KK1, 13,  1, x)
+    e, b = R(e, a, b, c, d, F3, KK1, 11,  2, x) #/* #31 */
+    #/* Parallel round 3 */
+    d, a = R(d, e, a, b, c, F2, KK2,  9, 15, x)
+    c, e = R(c, d, e, a, b, F2, KK2,  7,  5, x)
+    b, d = R(b, c, d, e, a, F2, KK2, 15,  1, x)
+    a, c = R(a, b, c, d, e, F2, KK2, 11,  3, x)
+    e, b = R(e, a, b, c, d, F2, KK2,  8,  7, x)
+    d, a = R(d, e, a, b, c, F2, KK2,  6, 14, x)
+    c, e = R(c, d, e, a, b, F2, KK2,  6,  6, x)
+    b, d = R(b, c, d, e, a, F2, KK2, 14,  9, x)
+    a, c = R(a, b, c, d, e, F2, KK2, 12, 11, x)
+    e, b = R(e, a, b, c, d, F2, KK2, 13,  8, x)
+    d, a = R(d, e, a, b, c, F2, KK2,  5, 12, x)
+    c, e = R(c, d, e, a, b, F2, KK2, 14,  2, x)
+    b, d = R(b, c, d, e, a, F2, KK2, 13, 10, x)
+    a, c = R(a, b, c, d, e, F2, KK2, 13,  0, x)
+    e, b = R(e, a, b, c, d, F2, KK2,  7,  4, x)
+    d, a = R(d, e, a, b, c, F2, KK2,  5, 13, x) #/* #47 */
+    #/* Parallel round 4 */
+    c, e = R(c, d, e, a, b, F1, KK3, 15,  8, x)
+    b, d = R(b, c, d, e, a, F1, KK3,  5,  6, x)
+    a, c = R(a, b, c, d, e, F1, KK3,  8,  4, x)
+    e, b = R(e, a, b, c, d, F1, KK3, 11,  1, x)
+    d, a = R(d, e, a, b, c, F1, KK3, 14,  3, x)
+    c, e = R(c, d, e, a, b, F1, KK3, 14, 11, x)
+    b, d = R(b, c, d, e, a, F1, KK3,  6, 15, x)
+    a, c = R(a, b, c, d, e, F1, KK3, 14,  0, x)
+    e, b = R(e, a, b, c, d, F1, KK3,  6,  5, x)
+    d, a = R(d, e, a, b, c, F1, KK3,  9, 12, x)
+    c, e = R(c, d, e, a, b, F1, KK3, 12,  2, x)
+    b, d = R(b, c, d, e, a, F1, KK3,  9, 13, x)
+    a, c = R(a, b, c, d, e, F1, KK3, 12,  9, x)
+    e, b = R(e, a, b, c, d, F1, KK3,  5,  7, x)
+    d, a = R(d, e, a, b, c, F1, KK3, 15, 10, x)
+    c, e = R(c, d, e, a, b, F1, KK3,  8, 14, x) #/* #63 */
+    #/* Parallel round 5 */
+    b, d = R(b, c, d, e, a, F0, KK4,  8, 12, x)
+    a, c = R(a, b, c, d, e, F0, KK4,  5, 15, x)
+    e, b = R(e, a, b, c, d, F0, KK4, 12, 10, x)
+    d, a = R(d, e, a, b, c, F0, KK4,  9,  4, x)
+    c, e = R(c, d, e, a, b, F0, KK4, 12,  1, x)
+    b, d = R(b, c, d, e, a, F0, KK4,  5,  5, x)
+    a, c = R(a, b, c, d, e, F0, KK4, 14,  8, x)
+    e, b = R(e, a, b, c, d, F0, KK4,  6,  7, x)
+    d, a = R(d, e, a, b, c, F0, KK4,  8,  6, x)
+    c, e = R(c, d, e, a, b, F0, KK4, 13,  2, x)
+    b, d = R(b, c, d, e, a, F0, KK4,  6, 13, x)
+    a, c = R(a, b, c, d, e, F0, KK4,  5, 14, x)
+    e, b = R(e, a, b, c, d, F0, KK4, 15,  0, x)
+    d, a = R(d, e, a, b, c, F0, KK4, 13,  3, x)
+    c, e = R(c, d, e, a, b, F0, KK4, 11,  9, x)
+    b, d = R(b, c, d, e, a, F0, KK4, 11, 11, x) #/* #79 */
+
+    t = (state[1] + cc + d) % 0x100000000
+    state[1] = (state[2] + dd + e) % 0x100000000
+    state[2] = (state[3] + ee + a) % 0x100000000
+    state[3] = (state[4] + aa + b) % 0x100000000
+    state[4] = (state[0] + bb + c) % 0x100000000
+    state[0] = t % 0x100000000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# for base58 encoding
+# read: https://learnmeabitcoin.com/technical/base58
+
+base58_alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+def hex0x_to_base58(hex_input: str):
+    dec = int(hex_input, 16)
+    rt = ""
+    while(dec > 0):
+        reminder = dec % 58
+        dec = dec // 58
+        rt = base58_alphabet[reminder] + rt
+    for h in hex_input[2:]:
+        if(h == "0"):
+            rt = "1" + rt
+        else:
+            break
+    return rt
+
+
+
+def hex0x_to_base58check(hex_input: str, bin_count=256):
+    hex_input = "0x80" + hex_input[2:] + "01" 
+    # "0x80" prefix is stand for Private key (WIF, compressed pubkey)
+    # see: https://en.bitcoin.it/wiki/List_of_address_prefixes 
+
+    # first 4 byte of double hash is used for checksum suffix 
+    s1 = sha256_binary_input(bin(int(hex_input, 16))[2:].zfill(bin_count))
+    s2 = sha256_binary_input(bin(int(s1, 16))[2:].zfill(bin_count))
+    hex_input += s2[2:10]
+
+    return hex0x_to_base58(hex_input)
+
+
+
+
+
+
+
+base32_alphabet = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+
+def hex0x_to_bech32_chacters(hex_input: str):
+    hi = hex_input[2:]
+    hl = len(hi)
+    b32 = ""
+    for i in range(hl//2):
+        h = hi[i*2 : i*2 + 2]
+        d = int("0x{}".format(h), 16)
+        c = base32_alphabet[d]
+        b32 += c
+    return b32
+
+def hex0x_to_5bit_sized_hex0x(hex_input: str, bin_count=160):
+    bins = bin(int(hex_input, 16))[2:].zfill(bin_count)
+    rt = "0x"
+    for i in range(160//5):
+        s = bins[i*5 : i*5 + 5].zfill(5)
+        h = hex(int("0b{}".format(s), 2))[2:].zfill(2)
+        rt += h
+    return rt
+
+
+
+
+
+
+
+def hex0x_to_binary(hex_string:str, bin_count=8):
+    rt = ""
+    hs = hex_string[2:]
+    l = len(hs)
+    for i in range(l//2):
+        s = hs[i*2 : i*2 + 2]
+        d = int("0x"+s, 16)
+        b = bin(d)[2:].zfill(bin_count)
+        rt += b
+    return rt
+
+
+def hex0x_to_sha256(input_hex0x:str):
+    bins = hex0x_to_binary(input_hex0x)
+    return sha256_binary_input(bins)
+
+
+def hex0x_to_ripemd160(hex_input:str):
+    by = bytes.fromhex(hex_input[2:])
+    rd = ripemd160(by)
+    return rd.hex()
+
+
+def hex0x_to_hash160(hex_input:str):
+    sha256_of_hex_input = hex0x_to_sha256(hex_input)
+    return hex0x_to_ripemd160(sha256_of_hex_input)
+
+
+
+
+
+
+
+
+
+
+
 # for ecdsa:
 # https://learnmeabitcoin.com/technical/ecdsa#key-generation
 
@@ -344,39 +815,60 @@ def multiply(k, point):
 
 
 
+# resources:
+# https://en.bitcoin.it/wiki/Bech32
+# https://en.bitcoin.it/wiki/BIP_0173
+def hex0x_to_integer_list(hex_input: str):
+    hi = hex_input[2:]
+    hl = len(hi)
+    integer_list = []
+    for i in range(hl//2):
+        h = hi[i*2 : i*2 + 2]
+        d = int("0x{}".format(h), 16)
+        integer_list.append(d)
+    return integer_list
 
-# for base58 encoding
-# read: https://learnmeabitcoin.com/technical/base58
-
-base58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-
-def hex0x_to_base58(hex_input: str):
-    dec = int(hex_input, 16)
-    rt = ""
-    while(dec > 0):
-        reminder = dec % 58
-        dec = dec // 58
-        rt = base58[reminder] + rt
-    for h in hex_input[2:]:
-        if(h == "0"):
-            rt = "1" + rt
-        else:
-            break
+def integer_list_to_hex0x(integer_list: list):
+    rt = "0x"
+    for i in integer_list:
+        h = hex(i)
+        rt += (h[2:]).zfill(2)
     return rt
 
+def bech32_polymod(values):
+    GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
+    chk = 1
+    for v in values:
+        b = (chk >> 25)
+        chk = (chk & 0x1ffffff) << 5 ^ v
+        for i in range(5):
+            chk ^= GEN[i] if ((b >> i) & 1) else 0
+    return chk
+
+def bech32_hrp_expand(s):
+    return [ord(x) >> 5 for x in s] + [0] + [ord(x) & 31 for x in s]
+    expanded_list = []
+    for x in s:
+        o = ord(x) >> 5
+        expanded_list.append(o)
+    expanded_list.append(0)
+    for x in s:
+        o = ord(x) & 31
+        expanded_list.append(o)
+    return expanded_list
+
+def bech32_verify_checksum(hrp:str, data:list):
+    return bech32_polymod(bech32_hrp_expand(hrp) + data) == 1
+
+def bech32_create_checksum(hrp:str, hex_input:str):
+    data = hex0x_to_integer_list(hex_input)
+    expanded_hrp = bech32_hrp_expand(hrp)
+    values = expanded_hrp + data
+    polymod = bech32_polymod(values + [0,0,0,0,0,0]) ^ 1
+    return [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
 
 
-def hex0x_to_base58check(hex_input: str):
-    hex_input = "0x80" + hex_input[2:] + "01" 
-    # "0x80" prefix is stand for Private key (WIF, compressed pubkey)
-    # see: https://en.bitcoin.it/wiki/List_of_address_prefixes 
 
-    # first 4 byte of double hash is used for checksum suffix 
-    s1 = sha256_binary_input(bin(int(hex_input, 16))[2:].zfill(256))
-    s2 = sha256_binary_input(bin(int(s1, 16))[2:].zfill(256))
-    hex_input += s2[2:10]
-
-    return hex0x_to_base58(hex_input)
 
 
 
@@ -400,7 +892,33 @@ def generate_public_keys_from_private_key(pik:int):
         puk_c = "02" + puk_c
     else:
         puk_c = "03" + puk_c
-    return (puk_u, puk_c)
+
+
+    # TODO
+    # first, sha256
+    # after, ripemd160
+    # sha256_of_puk_c = hex0x_to_sha256("0x"+"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798")
+    sha256_of_puk_c = hex0x_to_sha256("0x"+puk_c)
+    by = bytes.fromhex(sha256_of_puk_c[2:])
+    rd = ripemd160(by)
+    hash160_of_puk_c = rd.hex()
+    bech32_encoded_hash160 = hex0x_to_5bit_sized_hex0x(hash160_of_puk_c)
+    # prefix is witness version byte
+    bech32_encoded_hash160 = "0x00" + bech32_encoded_hash160[2:]
+
+    checksum_of_bech32_encoded_hash160 = bech32_create_checksum("bc", bech32_encoded_hash160)
+    checksum_of_bech32_encoded_hash160 = integer_list_to_hex0x(checksum_of_bech32_encoded_hash160)
+    bech32_encoded_hash160 += checksum_of_bech32_encoded_hash160[2:]
+    bech32_address = "bc1" + hex0x_to_bech32_chacters(bech32_encoded_hash160)
+
+    # TODO
+
+    print("\n sha256_of_puk_c: \t {} \n".format(sha256_of_puk_c))
+    print("\n hash160_of_puk_c: \t {} \n".format(hash160_of_puk_c))
+    print("\n bech32_encoded_hash160: \t {} \n".format(bech32_encoded_hash160))
+    print("\n bech32_address: \t {} \n".format(bech32_address))
+
+    return (puk_u, puk_c, bech32_address)
 
 
 
@@ -502,7 +1020,7 @@ Anyone can send you bitcoin to your public key address, not to private key (sent
 
 
 
-def format_bitcoin_keys_text(private_key:str, public_key_compressed:str):
+def format_bitcoin_keys_text(private_key:str, public_key_compressed:str, segwit:str):
     return """
     
     BITCOIN KEYS:
@@ -528,27 +1046,15 @@ def format_bitcoin_keys_text(private_key:str, public_key_compressed:str):
 
     Public key (compressed) ------------------------------> {}
 
-    This is yours public key. You can share this key. 
+    SegWit / Bech32 address ------------------------------> {}
+
+    These are yours public key and Bitcoin address. You can share this key. 
     If you want other people to send you bitcoin, you should share this public key.
-
-    
-
-
+    Todays, SegWit/Bech32 address is mostly used.
+    It is recommended using of SegWit/Bech32 address rather then Public key.
 
 
-    SegWit / Bech32 address:
-
-    This address is new type of bitcoin address. 
-    It starts with "bc1" prefix.
-    Its use is optional but it is recommended to use.
-    Most people use segwit/bech32 address today.
-    It is generated from public key.
-    You can generate it from online tools. Explained below:
-    *https://blockchain-academy.hs-mittweida.de/bech32-tool/
-    Copy the "public key (compressed)" to website to generate output of Bech32 / SegWit address.
-    Bech32/SegWit address start with "bc1" prefix.
-
-    """.format(private_key, public_key_compressed)
+    """.format(private_key, public_key_compressed, segwit)
 
 
 
@@ -593,11 +1099,11 @@ if(is_sentence_wrote):
         
             (private_key, hex_value, decimal_value) = generate_base58cc_private_key_from_text_input(text)
 
-            (public_key_uncompressed, public_key_compressed) = generate_public_keys_from_private_key(decimal_value)
+            print("\n private_key: \t {} \n".format(private_key))
 
-            sha256_of_public_key_compressed = sha256_string_input(public_key_compressed)
+            (public_key_uncompressed, public_key_compressed, segwit) = generate_public_keys_from_private_key(decimal_value)
 
-            bitcoin_keys_text = format_bitcoin_keys_text(private_key, public_key_compressed)
+            bitcoin_keys_text = format_bitcoin_keys_text(private_key, public_key_compressed, segwit)
 
             file = open("BITCOIN KEYS.txt", "wt")
             file.write(bitcoin_keys_text)
@@ -621,3 +1127,4 @@ if(is_sentence_wrote):
         file = open("BITCOIN KEYS.txt", "wt")
         file.write("Write any sentences inside \"TEXT_INPUT.txt\" file to generate Bitcoin keys.")
         file.close()
+
