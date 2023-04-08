@@ -1,5 +1,5 @@
 # Python version: 3.11.0 (64-bit, x64)
-# Updated: 08/04/2023
+# Updated: 07/04/2023
 # Licence: MIT License
 # Contact: satoshi.amd@gmail.com
 
@@ -591,15 +591,6 @@ def RMD160Transform(state, block): #uint32 state[5], uchar block[64]
 
 
 
-
-
-
-
-
-
-
-
-
 # for base58 encoding
 # read: https://learnmeabitcoin.com/technical/base58
 
@@ -804,7 +795,7 @@ def multiply(k, point):
         current = double(current)
         if(b == "1"):
             current = add(current, point)
-        #print("i: {}\t{}{}".format(index, b, current))
+        ##print("i: {}\t{}{}".format(index, b, current))
         #index += 1
         
     return current
@@ -913,10 +904,10 @@ def generate_public_keys_from_private_key(pik:int):
 
     # TODO
 
-    print("\n sha256_of_puk_c: \t {} \n".format(sha256_of_puk_c))
-    print("\n hash160_of_puk_c: \t {} \n".format(hash160_of_puk_c))
-    print("\n bech32_encoded_hash160: \t {} \n".format(bech32_encoded_hash160))
-    print("\n bech32_address: \t {} \n".format(bech32_address))
+    #print("\n sha256_of_puk_c: \t {} \n".format(sha256_of_puk_c))
+    #print("\n hash160_of_puk_c: \t {} \n".format(hash160_of_puk_c))
+    #print("\n bech32_encoded_hash160: \t {} \n".format(bech32_encoded_hash160))
+    #print("\n bech32_address: \t {} \n".format(bech32_address))
 
     return (puk_u, puk_c, bech32_address)
 
@@ -1099,7 +1090,7 @@ if(is_sentence_wrote):
         
             (private_key, hex_value, decimal_value) = generate_base58cc_private_key_from_text_input(text)
 
-            print("\n private_key: \t {} \n".format(private_key))
+            #print("\n private_key: \t {} \n".format(private_key))
 
             (public_key_uncompressed, public_key_compressed, segwit) = generate_public_keys_from_private_key(decimal_value)
 
