@@ -544,10 +544,9 @@ def format_bitcoin_keys_text(private_key:str, public_key_compressed:str):
     Most people use segwit/bech32 address today.
     It is generated from public key.
     You can generate it from online tools. Explained below:
-    *1 https://learnmeabitcoin.com/technical/hash-function#hash160
-    *2 https://slowli.github.io/bech32-buffer/
-    First, copy the "public key (compressed)" to *1 website to generate output of Hash160 (ripemd160(sha256())).
-    After, copy the "output of Hash160" to *2 website to generate Bech32 / SegWit address. (params: mainnet, scriptver 0)
+    *https://blockchain-academy.hs-mittweida.de/bech32-tool/
+    Copy the "public key (compressed)" to website to generate output of Bech32 / SegWit address.
+    Bech32/SegWit address start with "bc1" prefix.
 
     """.format(private_key, public_key_compressed)
 
