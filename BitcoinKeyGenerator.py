@@ -888,6 +888,7 @@ def generate_public_keys_from_private_key(pik:int):
     # TODO
     # first, sha256
     # after, ripemd160
+    # sha256_of_puk_c = hex0x_to_sha256("0x"+"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798")
     sha256_of_puk_c = hex0x_to_sha256("0x"+puk_c)
     by = bytes.fromhex(sha256_of_puk_c[2:])
     rd = ripemd160(by)
@@ -943,11 +944,12 @@ def modify_text(text_input:str):
 
 character_use_count = {"0":0,"1":0,"2":0,"3":0,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"a":0,"b":0,"c":0,"d":0,"e":0,"f":0,"g":0,"h":0,"i":0,"j":0,"k":0,"l":0,"m":0,"n":0,"o":0,"p":0,"q":0,"r":0,"s":0,"t":0,"u":0,"v":0,"w":0,"x":0,"y":0,"z":0,"A":0,"B":0,"C":0,"D":0,"E":0,"F":0,"G":0,"H":0,"I":0,"J":0,"K":0,"L":0,"M":0,"N":0,"O":0,"P":0,"Q":0,"R":0,"S":0,"T":0,"U":0,"V":0,"W":0,"X":0,"Y":0,"Z":0,"'":0,",":0,".":0}
 valid_characters = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',."
-def check_input_text_is_valid(text_input:str):
-    characters_length = len(text_input)
-    if(len(text_input) < 20):
+def check_input_text_is_valid(mt:str):
+    # mt -> modified_text_input
+    characters_length = len(mt)
+    if(len(mt) < 20):
         return (False, 1)
-    for t in text_input:
+    for t in mt:
         is_valid_char = False
         for a in valid_characters:
             if(t == a):
@@ -960,6 +962,10 @@ def check_input_text_is_valid(text_input:str):
         use_count = character_use_count[u]
         if(use_count / characters_length > float(0.33)): # input text will be rejceted if any character is used more than %33 percentage of sentences
             return (False, 3)
+    for i in range(characters_length - 4):
+        too_freq_repeated_character = mt[i] == mt[i+1] and mt[i] == mt[i+2] and mt[i] == mt[i+3] and mt[i] == mt[i+4]
+        if(too_freq_repeated_character):
+            return (False, 4)
     return (True, 0)
 
  
@@ -973,9 +979,10 @@ Write one or more sentences in "TEXT_INPUT.txt" file to generate private key .
 
 
     At least use 20 characters except spaces.
+    And it is not allowed to use more than 4 successive same characters.
 --> It is recommended to write minimum 40 characters except spaces to ensure strong encryption.
     If you use too short sentences, it will be easy to predict your private key and your bitcoin could be stolen.
-
+    
 
 Use below characters. Other characters are not valid.
 -----------------------------------------------------
@@ -1109,6 +1116,8 @@ if(is_sentence_wrote):
                 ft = "Please write valid characters. \n\nSee \"README.txt\" file for more info."
             elif(rejection_code == 3):
                 ft = "Please write heterogeneous sentences. \n\nDo not use any letters too frequently. \n\nAny character frequency must be less than %33 percent. \n\nOtherwise your private can be easily predictable and your Bitcoins could be stolen. \n\nSee \"README.txt\" file for more info."
+            elif(rejection_code == 4):
+                ft = "Please don't write characters too much repeatedly. \n\nIt is not allowed to use more than 4 successive same characters. \n\nIt may cause difficulty to remember your text. \n\nSee \"README.txt\" file for more info."
             else:
                 ft = "Unidentified error occured at processing text inside \"TEXT_INPUT.txt\" file. \n\nPlease try another sentences. \n\nSee \"README.txt\" file for more info."
             file.write(ft)
