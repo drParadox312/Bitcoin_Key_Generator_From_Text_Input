@@ -630,7 +630,7 @@ def hex0x_to_base58check(hex_input: str, bin_count=256):
 
 
 
-base32_alphabet = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+bech32_alphabet = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 
 def hex0x_to_bech32_chacters(hex_input: str):
     hi = hex_input[2:]
@@ -639,7 +639,7 @@ def hex0x_to_bech32_chacters(hex_input: str):
     for i in range(hl//2):
         h = hi[i*2 : i*2 + 2]
         d = int("0x{}".format(h), 16)
-        c = base32_alphabet[d]
+        c = bech32_alphabet[d]
         b32 += c
     return b32
 
