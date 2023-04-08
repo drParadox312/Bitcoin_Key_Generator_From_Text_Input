@@ -888,7 +888,6 @@ def generate_public_keys_from_private_key(pik:int):
     # TODO
     # first, sha256
     # after, ripemd160
-    # sha256_of_puk_c = hex0x_to_sha256("0x"+"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798")
     sha256_of_puk_c = hex0x_to_sha256("0x"+puk_c)
     by = bytes.fromhex(sha256_of_puk_c[2:])
     rd = ripemd160(by)
