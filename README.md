@@ -5,7 +5,7 @@ Execute "BitcoinKeyGenerator.py".
 
 "TEXT_INPUT.txt" file will be generated.
 
-Write one or more sentences in "TEXT_INPUT.txt" file to generate private and public keys.
+Write one or more sentences in "TEXT_INPUT.txt" file to generate private key, public key and segwit/bech32 address.
 
 After reexecute "BitcoinKeyGenerator.py" file. 
 
