@@ -9,8 +9,6 @@ Write one or more sentences in "TEXT_INPUT.txt" file to generate private and pub
 
 After reexecute "BitcoinKeyGenerator.py" file. 
 
-Finally "BITCOIN KEYS.txt" file which include private and public keys will be generated.
-
-You can generate segwit/bech32 address from public key via online tools. Explained at "BITCOIN KEYS.txt" file.
+Finally "BITCOIN KEYS.txt" file which include private key, public key and segwit address will be generated.
 
 
